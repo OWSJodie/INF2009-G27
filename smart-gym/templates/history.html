@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Workout History</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="container">
+    <h1>Workout Analysis</h1>
+    <div id="workout-summary"></div>
+    <ul id="session-list"></ul>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", getWorkoutSummary);
+</script>
+
+</body>
+</html>

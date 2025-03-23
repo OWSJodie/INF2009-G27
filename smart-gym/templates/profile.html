@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User Profile</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>User Profile</h1>
+        <div>
+            <label>Email:</label>
+            <input type="email" id="email" readonly>
+            <label>Name:</label>
+            <input type="text" id="name">
+            <label>RFID:</label>
+            <input type="text" id="rfid">
+            <button onclick="updateProfile()">Update Profile</button>
+        </div>
+    </div>
+
+    <script>
+        async function loadProfile() {
+            const userEmail = localStorage.getItem('userEmail');
+            const response = await fetch(`/profile?email=${userEmail}`);
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                document.getElementById('email').value = data.data.email;
+                document.getElementById('name').value = data.data.name || '';
+                document.getElementById('rfid').value = data.data.rfid || '';
+            }
+        }
+
+        async function updateProfile() {
+            const userEmail = localStorage.getItem('userEmail');
+            const name = document.getElementById('name').value;
+            const rfid = document.getElementById('rfid').value;
+
+            const response = await fetch('/profile', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({email: userEmail, name, rfid})
+            });
+
+            const result = await response.json();
+            alert(result.message);
+        }
+
+        loadProfile(); // ✅ Load profile on page load
+    </script>
+</body>
+</html>

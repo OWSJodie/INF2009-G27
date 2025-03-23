@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "smartgymbuddy-4b2b9",
+  "private_key_id": "99462271c1d6a4a02b771484bb342b949a5800c5",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDB3e19SqhkjhcP\nJ8Tm+OyzEWWSApAQVk1wD7Lle9qoOr3Yl2WJlbXLdWF1xyr+AfHFTnIV/Q01s5eo\nZtVpoCyqNlJ+qiEfZ3i8+jb8TCMHDuHp/sy1VzGlAr4m+kJbP+J00+uVoazYG4mJ\nP4ReL3vfNU+AsPw9gByr5EwcgrdIIiQOgHoGmJJ+osbcwynL30xVrbgWcTnyQ6ob\nmJGRd61klxfIPVrzYuGpxOJB83U2KjInwUjqePH+WMm6ssLEtyD8NMnxb3F32Bwn\n7sjWMejZYVQqks71+gUgLGFQGqvRyKe1YkGvUIMUKK4DK33iyR+Qa0/vaFRnrUTj\nPxdF+HfrAgMBAAECggEAFr3ZtpleleZ50QF5c8jJPMZH08Vw2zcXKr6aCJkrULxh\n+c7kuSuH4bVEI1n48pwNcvedTXQGVoGEmFtxIcy0K0a9DaEXypnLjDY5OLEWaM+3\nnkiRVfJuX0IqRo3pNnq7g2M6tFj8sCB8KqP5+0chsPuNdyC2g4u25qPHbo7CQPfq\nsmOCdj71auzmfVSMW6fiFu7sB6z+SviA3PWBCX/adAm8YeIXV8nO6Ua2lPaRmkSr\nW5St6b5YjjOVk15L4nKdAcTG0Wu5cPClD2Os+BmaduYzcRY1Us0QHoja806JGa8T\nW7n3ctPMVN6FRjXDgaNvQBSpsArU7+dPvaAtZekXdQKBgQDhx4yifvstftJz+eNu\nZXM6Bm8KuXQFuNfF/9VWNTd2c0bGwbENx8eNLJHPL7wur0XjU7tzkf/cH28PpMMj\nP3gZO39i3OH5B1dvtOAMCamqWNFOk53fkW2J3kJLJaGKI9qb8f1+6GulweWZlQ7R\ny6rRBoUBOBCBd41ibvuUzmnEtwKBgQDb0OCOMi6w3Vl0Eo1FXoWtFeiSYcch5lXQ\nRNHSmyEWOshRqOwVyVGSIm1FFiPmDCQsAs02q86gifHroCkRNR9Y8jRIDis4P9xJ\nJktvlGMV4HtA/eFQTgJFAQaf6K38fkzkamENoTJKl9tqAeNGB++TKDUt4Ez2qQ4v\nzLFiutP6bQKBgQDRG9pa3bSQ7HbKR1Sm+HsB8NeDXUPh0NK3ZT0XPO6DXDze9KGh\nG7jsPa1F8PYfXuIhq3lfjockPlDEclrxGGWJKRvQWrdHx87pfOJNA94KEXy5g+qi\nF7UWDa3kn5O/t3lPGY8orOaWfMDDv9Qb5r/sHFevS1euMSXXVubXaV14fQKBgCER\nXCaoD/QVaHaYr93mqU9vg0w6H13PK8un/rSjF6gjca0vL0zbu0SznyKMgRwDaZGh\nXkPCNtRZzCX5MxRenHeiABFy6DePC9GJTEHd3cYVvhT53GJbSeYdkGSP+VSJn4Gh\nKzaEsG8eRyi8XfdUDEtj+hQLsShOKE8yiODkYC1FAoGBANOu6xncqDLJPPo9qWlZ\nLRDfzDLD91U1oGC9jr24gCdFp0CKd4nmWAMD/+0/Oer4j7VV0PiXLRUU0uU0tpqQ\nWeM7UgwnwAjycUwhC9BJJnYw8bMDP9CwX5bWyWfoRJtnRm4jBwhzRJreg2VDFLwJ\n8hgP1meVycUwrSAWksryjGaA\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@smartgymbuddy-4b2b9.iam.gserviceaccount.com",
+  "client_id": "105812969068099048235",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40smartgymbuddy-4b2b9.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

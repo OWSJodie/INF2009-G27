@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- ? Navbar Section -->
+<div class="navbar">
+    <span>Smart Gym</span>
+    <span id="user-email"></span>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+</div>
+
+<div class="container">
+    <h1>Welcome to Your Dashboard</h1>
+
+    <!-- ? Create Workout Form -->
+    <div id="create-workout-section">
+        <h2>Create Workout</h2>
+        <input type="text" id="exercise" placeholder="Exercise" required>
+        <input type="number" id="sets" placeholder="Sets" required>
+        <input type="number" id="reps" placeholder="Reps" required>
+        <button onclick="createWorkout()">Create Workout</button>
+    </div>
+
+    <!-- ? Workout History -->
+    <h2>Workout History</h2>
+    <ul id="session-list"></ul>
+</div>
+
+<!-- ? Handle JS for Both Email + RFID Logins -->
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+<script>
+    async function loadDashboard() {
+        const userEmail = localStorage.getItem('userEmail');
+        const userRFID = localStorage.getItem('userRFID');
+
+        if (userEmail) {
+            document.getElementById('user-email').textContent = userEmail;
+            await getSessions(userEmail);
+        } else if (userRFID) {
+            document.getElementById('user-email').textContent = `RFID User (${userRFID})`;
+            await getSessions(userRFID); // ? Fetch history by RFID
+        } else {
+            window.location.href = '/login'; // ? Redirect if no session found
+        }
+    }
+
+    loadDashboard(); // ? Load on page load
+</script>
+
+</body>
+</html>
