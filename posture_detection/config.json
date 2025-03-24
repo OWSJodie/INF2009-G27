@@ -1,6 +1,6 @@
 {
     "thresholds": {
-      "WRIST_TILT_THRESHOLD": 0.18,
+      "WRIST_TILT_THRESHOLD": 0.1,
       "SHOULDER_TILT_THRESHOLD": 0.10,
       "HEAD_TILT_ADJUSTMENT": 0.02,
       "TOP_THRESHOLD": 0.20,
