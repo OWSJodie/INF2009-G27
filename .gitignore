@@ -1,2 +1,3 @@
 /smart-gym/routes/__pycache__
 /smart-gym/__pycache__
+*.pyc
