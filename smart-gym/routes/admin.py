@@ -1,87 +1,92 @@
-from flask import Blueprint, request, jsonify,render_template
-from firebase_config import db, admin_auth
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
+from firebase_config import db
+from firebase_admin import auth as admin_auth
+from google.cloud import firestore
+from routes.rfid import latest_rfid  # shared memory for scanned RFID
 
-# ✅ Define the Blueprint here
 admin_bp = Blueprint('admin', __name__)
 
+@admin_bp.route('/admin/dashboard')
+def dashboard():
+    if 'user' not in session:
+        return redirect(url_for('auth.login'))
 
-@admin_bp.route('/admin')
-def admin_dashboard():
-    return render_template('admin.html')  # ✅ Load admin dashboard
+    id_token = session['user']
+    decoded = admin_auth.verify_id_token(id_token)
+    user_id = decoded['uid']
 
-# ✅ Get All Users (Admin View)
-@admin_bp.route('/admin/users', methods=['GET'])
-def get_all_users():
-    user_email = request.args.get('email')
+    current_user_doc = db.collection('users').document(user_id).get()
+    current_user = current_user_doc.to_dict()
 
-    if not user_email:
-        return jsonify({"status": "error", "message": "Missing user email"}), 400
+    if not current_user or current_user.get('role') != 'admin':
+        flash("Access denied: Admins only", "danger")
+        return redirect(url_for('user.dashboard'))
 
-    # ✅ Check if user is admin
-    user_ref = db.collection('users').document(user_email).get()
-    if not user_ref.exists or user_ref.to_dict().get('role') != 'admin':
-        return jsonify({"status": "error", "message": "Unauthorized"}), 403
+    current_email = current_user.get('email', '')
+
+    users = []
+    for doc in db.collection('users').stream():
+        user = doc.to_dict()
+        user['user_id'] = doc.id
+        users.append(user)
+
+    return render_template('admin_dashboard.html', users=users, current_user_email=current_email)
+
+# Assign RFID to user using the latest scanned RFID (auto-injected from Pi)
+@admin_bp.route('/admin/assign-rfid-scanned/<user_id>', methods=['POST'])
+def assign_rfid_scanned(user_id):
+    rfid = request.form.get('rfid') or latest_rfid['value']
+    if not rfid:
+        flash("No RFID provided or scanned", "danger")
+        return redirect(url_for('admin.dashboard'))
 
     try:
-        users = db.collection('users').stream()
-        user_list = [
-            {**user.to_dict(), 'id': user.id} for user in users
-        ]
-        return jsonify({"status": "success", "data": user_list}), 200
-
+        db.collection('users').document(user_id).update({'rfid': rfid})
+        latest_rfid['value'] = None  # reset after use
+        flash("RFID assigned successfully!", "success")
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        print("RFID assignment error:", e)
+        flash("Failed to assign RFID", "danger")
 
+    return redirect(url_for('admin.dashboard'))
 
-# ✅ Update User
-@admin_bp.route('/admin/users/<email>', methods=['PUT'])
-def update_user(email):
-    data = request.json
-    if not data:
-        return jsonify({"status": "error", "message": "Invalid data"}), 400
-
+# Unassign RFID
+@admin_bp.route('/admin/unassign-rfid/<user_id>', methods=['POST'])
+def unassign_rfid(user_id):
     try:
-        # ✅ Update Firestore
-        db.collection('users').document(email).update({
-            'name': data.get('name', ''),
-            'rfid': data.get('rfid', ''),
-            'role': data.get('role', 'user')
+        db.collection('users').document(user_id).update({
+            'rfid': firestore.DELETE_FIELD
         })
-
-        return jsonify({"status": "success", "message": "User updated successfully"}), 200
-
+        flash("RFID unassigned", "warning")
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        print("RFID unassign error:", e)
+        flash("Failed to unassign RFID", "danger")
 
+    return redirect(url_for('admin.dashboard'))
 
-# ✅ Delete User (Firestore + Firebase Auth)
-@admin_bp.route('/admin/users/<email>', methods=['DELETE'])
-def delete_user(email):
+# Delete user
+@admin_bp.route('/admin/delete-user/<user_id>', methods=['POST'])
+def delete_user(user_id):
     try:
-        # ✅ Remove from Firestore
-        db.collection('users').document(email).delete()
-
-        # ✅ Remove from Firebase Auth
-        user = admin_auth.get_user_by_email(email)
-        if user:
-            admin_auth.delete_user(user.uid)
-
-        return jsonify({"status": "success", "message": "User deleted successfully from Firestore and Firebase Auth"}), 200
-
+        db.collection('users').document(user_id).delete()
+        flash("User deleted successfully", "info")
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        print("User deletion error:", e)
+        flash("Failed to delete user", "danger")
 
+    return redirect(url_for('admin.dashboard'))
 
-# ✅ Get User Info for Debugging
-@admin_bp.route('/admin/users/<email>', methods=['GET'])
-def get_user(email):
-    try:
-        user_ref = db.collection('users').document(email).get()
-        if user_ref.exists:
-            user_data = user_ref.to_dict()
-            return jsonify({"status": "success", "data": user_data}), 200
-        else:
-            return jsonify({"status": "error", "message": "User not found"}), 404
+# 🔗 Raspberry Pi posts here with scanned RFID
+@admin_bp.route('/api/rfid-scan', methods=['POST'])
+def receive_rfid_scan():
+    rfid = request.form.get('rfid')
+    if rfid:
+        latest_rfid['value'] = rfid
+        print("✅ Received scanned RFID:", rfid)
+        return jsonify(success=True)
+    return jsonify(success=False), 400
 
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+# 🔄 Admin dashboard polls this for the latest scanned RFID
+@admin_bp.route('/api/latest-scan')
+def latest_scan():
+    return jsonify(rfid=latest_rfid['value'])

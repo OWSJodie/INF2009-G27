@@ -1,107 +1,55 @@
+import os
 from flask import Blueprint, request, jsonify
+from werkzeug.utils import secure_filename
 from firebase_config import db
+from datetime import datetime
 
-workout_bp = Blueprint('workouts', __name__)
+workout_bp = Blueprint('workout', __name__)
+UPLOAD_FOLDER = 'static/uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# ✅ Get all sessions (GET)
-@workout_bp.route('/get-all-sessions', methods=['GET'])
-def get_all_sessions():
+@workout_bp.route('/api/workout', methods=['POST'])
+def receive_workout():
     try:
-        sessions = db.collection('workouts').stream()
-        workout_list = []
+        rfid = request.form.get('rfid')
+        exercise = request.form.get('exercise')
+        reps = int(request.form.get('reps', 0))
+        errors = request.form.get('errors', '')
 
-        for session in sessions:
-            data = session.to_dict()
-            workout_list.append({
-                'user': data.get('user'),
-                'exercise': data.get('exercise'),
-                'sets': data.get('sets'),
-                'reps': data.get('reps'),
-                'timestamp': data.get('timestamp')
-            })
+        if not rfid:
+            return jsonify({"error": "RFID is required"}), 400
 
-        return jsonify(workout_list), 200
+        # 🔎 Find user by RFID
+        user_query = db.collection('users').where('rfid', '==', rfid).limit(1).stream()
+        user_doc = next(user_query, None)
 
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        if not user_doc:
+            return jsonify({"error": "RFID not recognized"}), 404
 
+        user_id = user_doc.id
 
-# ✅ Get user-specific sessions (POST)
-@workout_bp.route('/get-sessions', methods=['POST'])
-def get_sessions():
-    data = request.json
-    if not data or 'email' not in data:
-        return jsonify({"status": "error", "message": "Invalid data"}), 400
+        # Optional: Handle image upload
+        image = request.files.get('image')
+        image_url = ''
+        if image:
+            filename = secure_filename(image.filename)
+            image_path = os.path.join(UPLOAD_FOLDER, filename)
+            image.save(image_path)
+            image_url = '/' + image_path  # Local reference
 
-    try:
-        user_email = data['email']
-        sessions = db.collection('workouts').where('user', '==', user_email).stream()
-
-        workout_list = []
-        for session in sessions:
-            data = session.to_dict()
-            workout_list.append({
-                'user': data.get('user'),
-                'exercise': data.get('exercise'),
-                'sets': data.get('sets'),
-                'reps': data.get('reps'),
-                'timestamp': data.get('timestamp')
-            })
-
-        return jsonify(workout_list), 200
-
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-@workout_bp.route('/log-session', methods=['POST'])
-def log_session():
-    data = request.json
-    if not data or 'user' not in data or 'exercise' not in data or 'sets' not in data or 'reps' not in data:
-        return jsonify({"status": "error", "message": "Invalid data"}), 400
-
-    try:
-        workout_ref = db.collection('workouts')
-        workout_ref.add({
-            'user': data['user'],
-            'exercise': data['exercise'],
-            'sets': data['sets'],
-            'reps': data['reps'],
-            'timestamp': data.get('timestamp', '')
+        # ✅ Save to Firestore
+        db.collection('workouts').add({
+            "user_id": user_id,
+            "rfid": rfid,
+            "exercise": exercise,
+            "reps": reps,
+            "errors": errors,
+            "image_url": image_url,
+            "timestamp": datetime.now().isoformat()
         })
 
-        return jsonify({"status": "success", "message": "Workout logged successfully"}), 201
+        return jsonify({"success": True}), 200
 
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-@workout_bp.route('/get-summary', methods=['POST'])
-def get_summary():
-    data = request.json
-    if not data or 'email' not in data:
-        return jsonify({"status": "error", "message": "Invalid data"}), 400
-
-    try:
-        user_email = data['email']
-        sessions = db.collection('workouts').where('user', '==', user_email).stream()
-
-        total_sets = 0
-        total_reps = 0
-        exercise_count = {}
-
-        for session in sessions:
-            data = session.to_dict()
-            total_sets += data.get('sets', 0)
-            total_reps += data.get('reps', 0)
-
-            exercise = data.get('exercise')
-            if exercise:
-                exercise_count[exercise] = exercise_count.get(exercise, 0) + 1
-
-        return jsonify({
-            "total_sets": total_sets,
-            "total_reps": total_reps,
-            "exercise_count": exercise_count
-        }), 200
-
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        print("Workout API Error:", e)
+        return jsonify({"error": "Failed to save workout"}), 500

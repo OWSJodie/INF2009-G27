@@ -1,56 +1,135 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Dashboard</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="UTF-8">
+  <title>Dashboard | Smart Gym</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
+<body class="bg-light">
 
-<!-- ? Navbar Section -->
-<div class="navbar">
-    <span>Smart Gym</span>
-    <span id="user-email"></span>
-    <button class="logout-btn" onclick="logout()">Logout</button>
-</div>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm px-3">
+    <a class="navbar-brand" href="/">Smart Gym</a>
+    <div class="ms-auto">
+      <span class="me-3">Welcome, {{ user }}</span>
+      <a href="/logout" class="btn btn-outline-danger btn-sm">Logout</a>
+    </div>
+  </nav>
 
-<div class="container">
-    <h1>Welcome to Your Dashboard</h1>
+  <div class="container mt-5">
+    <h2 class="mb-2">Dashboard</h2>
+    <p class="text-muted">This is where you’ll see your exercise summary and session history.</p>
 
-    <!-- ? Create Workout Form -->
-    <div id="create-workout-section">
-        <h2>Create Workout</h2>
-        <input type="text" id="exercise" placeholder="Exercise" required>
-        <input type="number" id="sets" placeholder="Sets" required>
-        <input type="number" id="reps" placeholder="Reps" required>
-        <button onclick="createWorkout()">Create Workout</button>
+    <!-- Chart Section -->
+    <div class="mb-5">
+      <h5>Workout Analysis</h5>
+      <canvas id="workoutChart" height="100"></canvas>
     </div>
 
-    <!-- ? Workout History -->
-    <h2>Workout History</h2>
-    <ul id="session-list"></ul>
-</div>
+    <!-- Group Workouts by Exercise -->
+    <h4 class="mb-3">Recent Workouts</h4>
 
-<!-- ? Handle JS for Both Email + RFID Logins -->
-<script src="{{ url_for('static', filename='script.js') }}"></script>
-<script>
-    async function loadDashboard() {
-        const userEmail = localStorage.getItem('userEmail');
-        const userRFID = localStorage.getItem('userRFID');
+    {% set grouped = {} %}
+    {% for w in workouts %}
+      {% set ex = w.exercise %}
+      {% if ex in grouped %}
+        {{ grouped[ex].append(w) }}
+      {% else %}
+        {% set _ = grouped.update({ex: [w]}) %}
+      {% endif %}
+    {% endfor %}
 
-        if (userEmail) {
-            document.getElementById('user-email').textContent = userEmail;
-            await getSessions(userEmail);
-        } else if (userRFID) {
-            document.getElementById('user-email').textContent = `RFID User (${userRFID})`;
-            await getSessions(userRFID); // ? Fetch history by RFID
-        } else {
-            window.location.href = '/login'; // ? Redirect if no session found
+    {% for exercise, entries in grouped.items() %}
+      <h5 class="mt-4">{{ exercise|capitalize }}</h5>
+      <table class="table table-sm table-bordered">
+        <thead class="table-light">
+          <tr>
+            <th>Reps</th>
+            <th>Errors</th>
+            <th>Image</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for w in entries %}
+            <tr>
+              <td>{{ w.reps }}</td>
+              <td>
+                {% if w.errors %}
+                  <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#errorModal{{ loop.index }}">View</button>
+
+                  <!-- Error Modal -->
+                  <div class="modal fade" id="errorModal{{ loop.index }}" tabindex="-1">
+                    <div class="modal-dialog">
+                      <div class="modal-content">
+                        <div class="modal-header"><h5 class="modal-title">Errors</h5></div>
+                        <div class="modal-body">
+                          <pre>{{ w.errors }}</pre>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                {% else %}
+                  None
+                {% endif %}
+              </td>
+              <td>
+                {% if w.image_url %}
+                  <img src="{{ w.image_url }}" width="80" class="rounded">
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td>{{ w.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endfor %}
+
+    <a href="{{ url_for('user.workouts') }}" class="btn btn-outline-primary mt-3">View All Workouts</a>
+  </div>
+
+  <!-- Bootstrap & Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    const workoutData = {{ workouts|tojson }};
+    const repsPerDay = {};
+  
+    workoutData.forEach(w => {
+      const date = new Date(w.timestamp).toISOString().split('T')[0];
+      repsPerDay[date] = (repsPerDay[date] || 0) + w.reps;
+    });
+  
+    const labels = Object.keys(repsPerDay).reverse();
+    const data = Object.values(repsPerDay).reverse();
+  
+    new Chart(document.getElementById('workoutChart'), {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Reps per Day',
+          data: data,
+          backgroundColor: 'rgba(13, 110, 253, 0.7)'
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: {
+              precision: 0
+            }
+          }
         }
-    }
-
-    loadDashboard(); // ? Load on page load
-</script>
+      }
+    });
+  </script>
+  
 
 </body>
 </html>
