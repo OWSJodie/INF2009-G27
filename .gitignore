@@ -2,3 +2,6 @@
 /smart-gym/__pycache__
 *.pyc
 /smart-gym/flask_session
+/smart-gym/.venv
+/smart-gym/flask_session
+*.pyc
