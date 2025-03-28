@@ -7,10 +7,9 @@ from flask import current_app
 
 auth_bp = Blueprint('auth', __name__)
 
-# Show login form
 @auth_bp.route('/', methods=['GET', 'POST'])
 def login():
-    if 'user' in session:
+    if 'user_id' in session:
         return redirect(url_for('user.dashboard'))
 
     if request.method == 'POST':
@@ -19,6 +18,7 @@ def login():
         try:
             user = client_auth.sign_in_with_email_and_password(email, password)
             session['user'] = user['idToken']
+            session['user_id'] = user['localId']
             session.permanent = True
             return redirect(url_for('user.dashboard'))
         except:
@@ -28,13 +28,12 @@ def login():
     return render_template('login.html')
 
 
-# Logout
 @auth_bp.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('auth.login'))
 
-# Register
+
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -52,7 +51,6 @@ def register():
             return redirect(url_for('auth.register'))
 
         try:
-            # Step 1: Create user in Firebase Authentication
             user = client_auth.create_user_with_email_and_password(email, password)
             user_id = user['localId']
         except Exception as e:
@@ -66,7 +64,6 @@ def register():
             return redirect(url_for('auth.register'))
 
         try:
-            # Step 2: Store user profile in Firestore
             user_data = {
                 "name": name,
                 "email": email,
@@ -74,16 +71,12 @@ def register():
                 "created_at": datetime.now().isoformat()
             }
             db.collection('users').document(user_id).set(user_data)
-
         except Exception as e:
-            # Roll back: delete user from Firebase Auth if Firestore fails
             try:
                 admin_auth.delete_user(user_id)
             except:
-                pass  # Optional: log this failure silently
-
-            flash("Account creation failed (profile data could not be saved). Please try again.", "danger")
-            print("Firestore write error:", e)
+                pass
+            flash("Account creation failed (profile data could not be saved).", "danger")
             return redirect(url_for('auth.register'))
 
         flash("Account created successfully. Please log in.", "success")
@@ -92,13 +85,13 @@ def register():
     return render_template('register.html')
 
 
+# RFID Login Handler
 @auth_bp.route('/rfid-login', methods=['POST'])
 def rfid_login():
     rfid = request.form.get('rfid')
     if not rfid:
         return jsonify({"error": "No RFID provided"}), 400
 
-    # Lookup user by RFID
     user_query = db.collection('users').where('rfid', '==', rfid).limit(1).stream()
     user_doc = next(user_query, None)
 
@@ -108,27 +101,25 @@ def rfid_login():
     user_id = user_doc.id
     email = user_doc.to_dict().get('email')
 
-    # Generate secure login token
-    serializer = URLSafeTimedSerializer(app.secret_key)
+    serializer = URLSafeTimedSerializer(current_app.secret_key)
     token = serializer.dumps(user_id, salt='rfid-login')
     login_url = url_for('auth.token_login', token=token, _external=True)
 
-    print(f"RFID login success for: {email}")
+    print(f"[✅] RFID login success for: {email}")
     return jsonify({"success": True, "redirect": login_url}), 200
 
-    
+
 @auth_bp.route('/login-by-token/<token>')
 def token_login(token):
     try:
         serializer = URLSafeTimedSerializer(current_app.secret_key)
-        user_id = serializer.loads(token, salt='rfid-login', max_age=30)  # 30 sec expiry
+        user_id = serializer.loads(token, salt='rfid-login', max_age=30)
 
-        # Set up session using Firebase Admin
-        custom_token = admin_auth.create_custom_token(user_id)
-        session['user'] = custom_token.decode('utf-8')
+        # ✅ Set session directly using user_id
+        session['user_id'] = user_id
         session.permanent = True
 
-        flash("Logged in successfully via RFID", "success")
+        flash("Logged in via RFID successfully!", "success")
         return redirect(url_for('user.dashboard'))
 
     except Exception as e:
