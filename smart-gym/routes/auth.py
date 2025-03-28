@@ -2,6 +2,8 @@ from firebase_config import client_auth, db
 from firebase_admin import auth as admin_auth
 from datetime import datetime
 from flask import Blueprint, jsonify, render_template, request, redirect, session, url_for, flash
+from itsdangerous import URLSafeTimedSerializer
+from flask import current_app
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -89,31 +91,47 @@ def register():
 
     return render_template('register.html')
 
+
 @auth_bp.route('/rfid-login', methods=['POST'])
 def rfid_login():
     rfid = request.form.get('rfid')
     if not rfid:
-        return jsonify({"error": "RFID missing"}), 400
+        return jsonify({"error": "No RFID provided"}), 400
 
+    # Lookup user by RFID
+    user_query = db.collection('users').where('rfid', '==', rfid).limit(1).stream()
+    user_doc = next(user_query, None)
+
+    if not user_doc:
+        return jsonify({"error": "RFID not recognized"}), 404
+
+    user_id = user_doc.id
+    email = user_doc.to_dict().get('email')
+
+    # Generate secure login token
+    serializer = URLSafeTimedSerializer(app.secret_key)
+    token = serializer.dumps(user_id, salt='rfid-login')
+    login_url = url_for('auth.token_login', token=token, _external=True)
+
+    print(f"RFID login success for: {email}")
+    return jsonify({"success": True, "redirect": login_url}), 200
+
+    
+@auth_bp.route('/login-by-token/<token>')
+def token_login(token):
     try:
-        # Find user with matching RFID
-        user_query = db.collection('users').where('rfid', '==', rfid).limit(1).stream()
-        user_doc = next(user_query, None)
+        serializer = URLSafeTimedSerializer(current_app.secret_key)
+        user_id = serializer.loads(token, salt='rfid-login', max_age=30)  # 30 sec expiry
 
-        if not user_doc:
-            return jsonify({"error": "RFID not linked to any account"}), 404
-
-        user_data = user_doc.to_dict()
-        user_id = user_doc.id
-
-        # Generate a custom token for this user
+        # Set up session using Firebase Admin
         custom_token = admin_auth.create_custom_token(user_id)
         session['user'] = custom_token.decode('utf-8')
         session.permanent = True
 
-        print(f"[✅] RFID login success for: {user_data['email']}")
-        return jsonify(success=True, redirect="/dashboard")
+        flash("Logged in successfully via RFID", "success")
+        return redirect(url_for('user.dashboard'))
 
     except Exception as e:
-        print("RFID login failed:", e)
-        return jsonify({"error": "Server error"}), 500
+        print("Token error:", e)
+        flash("Login token expired or invalid", "danger")
+        return redirect(url_for('auth.login'))
