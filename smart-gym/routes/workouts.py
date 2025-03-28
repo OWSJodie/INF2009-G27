@@ -6,8 +6,11 @@ from datetime import datetime
 
 workout_bp = Blueprint('workout', __name__)
 UPLOAD_FOLDER = 'static/uploads'
+ERROR_FOLDER = os.path.join(UPLOAD_FOLDER, 'errors')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(ERROR_FOLDER, exist_ok=True)
 
+@workout_bp.route('/api/workout', methods=['POST'])
 @workout_bp.route('/api/workout', methods=['POST'])
 def receive_workout():
     try:
@@ -15,6 +18,7 @@ def receive_workout():
         exercise = request.form.get('exercise')
         reps = int(request.form.get('reps', 0))
         errors = request.form.get('errors', '')
+        timestamp = request.form.get('timestamp', datetime.now().isoformat())
 
         if not rfid:
             return jsonify({"error": "RFID is required"}), 400
@@ -22,22 +26,32 @@ def receive_workout():
         # 🔎 Find user by RFID
         user_query = db.collection('users').where('rfid', '==', rfid).limit(1).stream()
         user_doc = next(user_query, None)
-
         if not user_doc:
             return jsonify({"error": "RFID not recognized"}), 404
 
         user_id = user_doc.id
 
-        # Optional: Handle image upload
+        # ✅ Save main workout image locally
         image = request.files.get('image')
         image_url = ''
         if image:
             filename = secure_filename(image.filename)
-            image_path = os.path.join(UPLOAD_FOLDER, filename)
-            image.save(image_path)
-            image_url = '/' + image_path  # Local reference
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            image.save(filepath)
+            image_url = f"/{filepath}"
 
-        # ✅ Save to Firestore
+        # ✅ Save error images
+        error_urls = []
+        for key in request.files:
+            if key.startswith("error_image_"):
+                err_file = request.files[key]
+                err_name = secure_filename(err_file.filename)
+                err_path = os.path.join(ERROR_FOLDER, err_name)
+                os.makedirs(os.path.dirname(err_path), exist_ok=True)
+                err_file.save(err_path)
+                error_urls.append(f"/{err_path}")
+
+        # ✅ Save workout entry to Firestore
         db.collection('workouts').add({
             "user_id": user_id,
             "rfid": rfid,
@@ -45,7 +59,8 @@ def receive_workout():
             "reps": reps,
             "errors": errors,
             "image_url": image_url,
-            "timestamp": datetime.now().isoformat()
+            "error_images": error_urls,
+            "timestamp": timestamp
         })
 
         return jsonify({"success": True}), 200
