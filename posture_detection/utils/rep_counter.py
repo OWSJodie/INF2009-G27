@@ -8,7 +8,7 @@ TOP_THRESHOLD = config["thresholds"]["TOP_THRESHOLD"]
 BOTTOM_THRESHOLD = config["thresholds"]["BOTTOM_THRESHOLD"]
 ROLLING_FRAMES = config["rolling_frames"]
 
-# 🧠 Centralized state
+#Centralized state
 rep_state = {
     "rep_count": -1,
     "rep_phase": "waiting",
@@ -46,7 +46,7 @@ def reset_reps():
     rep_state["rep_count"] = -1
     rep_state["rep_phase"] = "waiting"
     rep_state["first_rep"] = False
-    print("🔁 Reps reset.")
+    print("Reps reset.")
 
 def get_rep_count():
     return rep_state["rep_count"]

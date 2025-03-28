@@ -1,9 +1,11 @@
+import cv2
+import mediapipe as mp
+
 from utils.pose_utils import detect_user_mode, is_user_lying_down
 from utils.posture_feedback import detect_bar_tilt, error_log, bar_tilt_counter, shoulder_lean_counter
 from utils.rep_counter import count_reps, reset_reps, get_rep_count
 from utils.submit_result import send_summary
-import cv2
-import mediapipe as mp
+from utils.rfid_reader import get_current_user_id
 
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
@@ -17,7 +19,12 @@ user_in_position = False
 def process_frame(frame, pose, config):
     global last_mode, stable_position_count, user_in_position
     global bar_tilt_counter, shoulder_lean_counter
-
+    
+    user_id = get_current_user_id()
+    if not user_id:
+        cv2.putText(frame, "Waiting for RFID...", (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (100, 100, 255), 2)
+        return frame
+    
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     pose_results = pose.process(frame_rgb)
 

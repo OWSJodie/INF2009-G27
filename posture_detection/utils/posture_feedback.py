@@ -76,7 +76,11 @@ def detect_bar_tilt(landmarks, frame):
         cv2.putText(frame, f"Bar tilting to {side}", (20, 280), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
 
 def log_error_frame(frame, label):
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    filename = f"{ERROR_OUTPUT_DIR}/{timestamp}_{label.replace(' ', '_')}.jpg"
-    cv2.imwrite(filename, frame)
-    print(f"[📸] Saved error frame: {filename}")
+    rfid = get_current_user_id() or "unknown"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    label_clean = label.replace(' ', '_')
+    filename = f"{rfid}_{label_clean}_{timestamp}.jpg"
+    filepath = os.path.join(ERROR_OUTPUT_DIR, filename)
+
+    cv2.imwrite(filepath, frame)
+    print(f"[ERROR] Saved error frame: {filepath}")
