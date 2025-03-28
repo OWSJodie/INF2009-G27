@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import threading
 import subprocess
 import RPi.GPIO as GPIO
@@ -6,11 +5,12 @@ from mfrc522 import SimpleMFRC522
 import requests
 import time
 
-# Configuration
+# Config
 FLASK_PORT = 5000
-API_URL = f"http://localhost:{FLASK_PORT}/rfid-login"
-BROWSER_URL = f"http://localhost:{FLASK_PORT}/dashboard"
-BROWSER_COMMAND = f"chromium-browser --new-window {BROWSER_URL}"
+LOGIN_API = f"http://localhost:{FLASK_PORT}/rfid-login"
+STORE_API = f"http://localhost:{FLASK_PORT}/api/rfid-scan"
+DEFAULT_URL = f"http://localhost:{FLASK_PORT}/"
+BROWSER_PROCESS = "chromium-browser"
 
 def run_flask():
     print("Starting Flask server...")
@@ -23,12 +23,13 @@ def is_browser_running():
     except subprocess.CalledProcessError:
         return False
 
-def open_browser_if_needed():
+def open_browser_if_needed(url):
     if not is_browser_running():
         print("No browser window detected. Launching Chromium...")
-        subprocess.Popen(BROWSER_COMMAND, shell=True)
+        subprocess.Popen([BROWSER_PROCESS, "--new-window", url])
     else:
-        print("Browser is already running.")
+        print("Browser is already running. Opening tab...")
+        subprocess.Popen([BROWSER_PROCESS, url])
 
 def rfid_loop():
     reader = SimpleMFRC522()
@@ -39,29 +40,29 @@ def rfid_loop():
             rfid = str(uid).strip()
             print(f"Scanned UID: {rfid}")
 
-            # Send RFID to Flask API
             try:
-                response = requests.post(API_URL, data={'rfid': rfid})
+                response = requests.post(LOGIN_API, data={'rfid': rfid}, timeout=5)
                 if response.ok:
-                    print(f"RFID sent successfully: {response.status_code}")
-                    open_browser_if_needed()
+                    data = response.json()
+                    redirect_url = data.get("redirect", DEFAULT_URL)
+                    print("RFID recognized. Logging in...")
+                    open_browser_if_needed(redirect_url)
                 else:
-                    print(f"Server returned error {response.status_code}: {response.text}")
+                    print(f"RFID not recognized (status {response.status_code}). Sending to admin queue.")
+                    requests.post(STORE_API, data={'rfid': rfid})
             except Exception as e:
                 print(f"Error sending RFID: {e}")
 
             time.sleep(2)
 
     except KeyboardInterrupt:
-        print("RFID loop stopped by user.")
+        print("RFID loop interrupted by user.")
     finally:
         GPIO.cleanup()
 
 if __name__ == "__main__":
-    # Start Flask in a background thread
     flask_thread = threading.Thread(target=run_flask)
     flask_thread.daemon = True
     flask_thread.start()
 
-    # Run the RFID loop in the main thread
     rfid_loop()
