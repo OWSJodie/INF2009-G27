@@ -5,3 +5,4 @@
 /smart-gym/.venv
 /smart-gym/flask_session
 *.pyc
+/posture_detection/__pycache__
