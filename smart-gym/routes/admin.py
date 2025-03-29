@@ -1,8 +1,11 @@
+from collections import defaultdict
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from firebase_config import db
 from firebase_admin import auth as admin_auth
 from google.cloud import firestore
+from datetime import datetime, timedelta
 from routes.rfid import latest_rfid  # shared memory for scanned RFID
+from dateutil.parser import parse as parse_date
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -35,7 +38,7 @@ def dashboard():
 
     return render_template('admin_dashboard.html', users=users, current_user_email=current_email, user=name, user_role=role)
 
-# Assign RFID to user using the latest scanned RFID (auto-injected from Pi)
+
 @admin_bp.route('/admin/assign-rfid-scanned/<user_id>', methods=['POST'])
 def assign_rfid_scanned(user_id):
     rfid = request.form.get('rfid') or latest_rfid['value']
@@ -53,7 +56,7 @@ def assign_rfid_scanned(user_id):
 
     return redirect(url_for('admin.dashboard'))
 
-# Unassign RFID
+
 @admin_bp.route('/admin/unassign-rfid/<user_id>', methods=['POST'])
 def unassign_rfid(user_id):
     try:
@@ -67,7 +70,7 @@ def unassign_rfid(user_id):
 
     return redirect(url_for('admin.dashboard'))
 
-# Delete user
+
 @admin_bp.route('/admin/delete-user/<user_id>', methods=['POST'])
 def delete_user(user_id):
     try:
@@ -79,7 +82,7 @@ def delete_user(user_id):
 
     return redirect(url_for('admin.dashboard'))
 
-# 🔗 Raspberry Pi posts here with scanned RFID
+
 @admin_bp.route('/api/rfid-scan', methods=['POST'])
 def receive_rfid_scan():
     rfid = request.form.get('rfid')
@@ -89,7 +92,52 @@ def receive_rfid_scan():
         return jsonify(success=True)
     return jsonify(success=False), 400
 
-# 🔄 Admin dashboard polls this for the latest scanned RFID
+
 @admin_bp.route('/api/latest-scan')
 def latest_scan():
     return jsonify(rfid=latest_rfid['value'])
+
+
+
+@admin_bp.route('/admin/analytics-data')
+def analytics_data():
+    period = request.args.get('period', 'daily')
+    now = datetime.utcnow()
+
+    if period == 'weekly':
+        start = now - timedelta(weeks=1)
+        date_format = "%Y-%m-%d"
+    elif period == 'monthly':
+        start = now - timedelta(days=30)
+        date_format = "%Y-%m-%d"
+    elif period == 'all':
+        start = datetime.min
+        date_format = "%Y-%m-%d"
+    else:
+        start = now - timedelta(days=1)
+        date_format = "%Y-%m-%d %H:00"
+
+    workouts = db.collection('workouts').stream()
+
+    exercise_date_usage = defaultdict(lambda: defaultdict(set))  # exercise -> date -> user_id set
+
+    for doc in workouts:
+        data = doc.to_dict()
+        raw_ts = data.get('timestamp', '')
+        try:
+            ts = parse_date(raw_ts)
+        except:
+            continue
+
+        if ts >= start:
+            date_str = ts.strftime(date_format)
+            exercise = data.get('exercise', 'Unknown')
+            user_id = data.get('user_id', '')
+            exercise_date_usage[exercise][date_str].add(user_id)
+
+    # Convert sets to counts
+    result = {}
+    for exercise, date_map in exercise_date_usage.items():
+        result[exercise] = {date: len(uids) for date, uids in date_map.items()}
+
+    return jsonify(result)

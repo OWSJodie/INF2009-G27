@@ -1,81 +1,126 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Admin Dashboard | Smart Gym</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
+
 <body class="bg-light">
 
-  <!-- Navbar -->
   {% include 'navbar.html' %}
 
+  <div class="container mt-4">
 
-  <div class="container">
-    <h2 class="mb-4">Manage Users & Assign RFID</h2>
+    <h2 class="mb-4">Admin Dashboard</h2>
 
-    <table class="table table-bordered table-hover bg-white shadow-sm">
-      <thead class="table-light">
-        <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Role</th>
-          <th>RFID</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for user in users %}
-        <tr>
-          <td>{{ user.name }}</td>
-          <td>{{ user.email }}</td>
-          <td>{{ user.role }}</td>
-          <td>{{ user.rfid if user.rfid else 'Not Assigned' }}</td>
-          <td>
-            {% if user.email != current_user_email %}
-              {% if user.rfid %}
-                <form method="POST" action="{{ url_for('admin.unassign_rfid', user_id=user.user_id) }}" class="d-inline">
+    <ul class="nav nav-tabs" id="adminTab" role="tablist">
+      <li class="nav-item">
+        <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button"
+          role="tab">Users</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" id="usage-tab" data-bs-toggle="tab" data-bs-target="#usage" type="button"
+          role="tab">Usage Analytics</button>
+      </li>
+    </ul>
+    
+
+    <div class="tab-content mt-4">
+      <!-- USERS TAB -->
+      <div class="tab-pane fade show active" id="users" role="tabpanel">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endwith %}
+        <h4>Manage Users & Assign RFID</h4>
+        <table class="table table-bordered table-hover bg-white shadow-sm">
+          <thead class="table-light">
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>RFID</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in users %}
+            <tr>
+              <td>{{ user.name }}</td>
+              <td>{{ user.email }}</td>
+              <td>{{ user.role }}</td>
+              <td>{{ user.rfid if user.rfid else 'Not Assigned' }}</td>
+              <td>
+                {% if user.email != current_user_email %}
+                {% if user.rfid %}
+                <form method="POST" action="{{ url_for('admin.unassign_rfid', user_id=user.user_id) }}"
+                  class="d-inline">
                   <button type="submit" class="btn btn-warning btn-sm">Unassign</button>
                 </form>
-              {% else %}
-                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#scanModal{{ loop.index }}">
+                {% else %}
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                  data-bs-target="#scanModal{{ loop.index }}">
                   Assign RFID
                 </button>
-              {% endif %}
-              <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.user_id) }}" class="d-inline">
-                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-              </form>
-            {% else %}
-              <em>You're logged in</em>
-            {% endif %}
-          </td>
-        </tr>
+                {% endif %}
+                <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.user_id) }}" class="d-inline">
+                  <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                </form>
+                {% else %}
+                <em>You're logged in</em>
+                {% endif %}
+              </td>
+            </tr>
 
-        <!-- RFID Assign Modal -->
-        <div class="modal fade" id="scanModal{{ loop.index }}" tabindex="-1">
-          <div class="modal-dialog">
-            <div class="modal-content">
-              <form method="POST" action="{{ url_for('admin.assign_rfid_scanned', user_id=user.user_id) }}">
-                <div class="modal-header">
-                  <h5 class="modal-title">Assign RFID to {{ user.name }}</h5>
+            <!-- RFID Modal -->
+            <div class="modal fade" id="scanModal{{ loop.index }}" tabindex="-1">
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <form method="POST" action="{{ url_for('admin.assign_rfid_scanned', user_id=user.user_id) }}">
+                    <div class="modal-header">
+                      <h5 class="modal-title">Assign RFID to {{ user.name }}</h5>
+                    </div>
+                    <div class="modal-body">
+                      <p>Please scan the RFID card using Raspberry Pi...</p>
+                      <input type="text" name="rfid" id="rfidField{{ loop.index }}" class="form-control" readonly
+                        required>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="submit" class="btn btn-success">Assign</button>
+                    </div>
+                  </form>
                 </div>
-                <div class="modal-body">
-                  <p>Please scan the RFID card using Raspberry Pi...</p>
-                  <input type="text" name="rfid" id="rfidField{{ loop.index }}" class="form-control" readonly required>
-                </div>
-                <div class="modal-footer">
-                  <button type="submit" class="btn btn-success">Assign</button>
-                </div>
-              </form>
+              </div>
             </div>
-          </div>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- USAGE TAB -->
+      <div class="tab-pane fade" id="usage" role="tabpanel">
+        <h4 class="mb-3">Machine Usage Analytics</h4>
+        <div class="d-flex align-items-center mb-3">
+          <label for="timeFilter" class="me-2">Select Time Period:</label>
+          <select id="timeFilter" class="form-select w-auto">
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="all">All Time</option>
+          </select>
         </div>
-        {% endfor %}
-      </tbody>
-    </table>
+        <canvas id="machineUsageChart" height="100"></canvas>
+      </div>
+    </div>
   </div>
 
+  <!-- JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <script>
     function pollRFIDInput(modalId, inputId) {
       const input = document.getElementById(inputId);
@@ -100,6 +145,87 @@
         pollRFIDInput(modalId, inputId);
       });
     });
+
+    // Chart.js for Machine Usage
+    let usageChart;
+
+    function fetchAndRenderTimeSeries(period = 'daily') {
+      fetch(`/admin/analytics-data?period=${period}`)
+        .then(res => res.json())
+        .then(data => {
+          const allDatesSet = new Set();
+          const datasets = [];
+
+          for (const exercise in data) {
+            const usageData = data[exercise];
+            Object.keys(usageData).forEach(date => allDatesSet.add(date));
+          }
+
+          const sortedDates = Array.from(allDatesSet).sort();
+
+          for (const exercise in data) {
+            const usageData = data[exercise];
+            const counts = sortedDates.map(date => usageData[date] || 0);
+            datasets.push({
+              label: exercise,
+              data: counts,
+              fill: false,
+              tension: 0.3,
+              borderWidth: 2
+            });
+          }
+
+          const ctx = document.getElementById('machineUsageChart').getContext('2d');
+          if (usageChart) usageChart.destroy();
+          usageChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: sortedDates,
+              datasets: datasets
+            },
+            options: {
+              responsive: true,
+              interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+              },
+              plugins: {
+                legend: {
+                  display: true,
+                  position: 'top',
+                  labels: {
+                    boxWidth: 20
+                  }
+                },
+                tooltip: {
+                  mode: 'index',
+                  intersect: false
+                }
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  precision: 0
+                },
+                x: {
+                  ticks: {
+                    maxRotation: 45,
+                    minRotation: 45
+                  }
+                }
+              }
+            }
+          });
+        });
+    }
+
+    document.getElementById('timeFilter').addEventListener('change', function () {
+      fetchAndRenderTimeSeries(this.value);
+    });
+
+    fetchAndRenderTimeSeries();; // initial load
   </script>
 </body>
+
 </html>

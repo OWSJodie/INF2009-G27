@@ -7,9 +7,7 @@
 </head>
 <body class="bg-light">
 
-  <!-- Navbar -->
   {% include 'navbar.html' %}
-
 
   <div class="container mt-5 mb-5">
     <h2 class="mb-2">Dashboard</h2>
@@ -17,7 +15,7 @@
 
     <!-- Chart Section -->
     <div class="mb-5">
-      <h5>Workout Analysis</h5>
+      <h5>Workout Analysis (Time Series)</h5>
       <canvas id="workoutChart" height="100"></canvas>
     </div>
 
@@ -52,8 +50,6 @@
               <td>
                 {% if w.errors %}
                   <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#errorModal{{ loop.index }}">View</button>
-
-                  <!-- Error Modal -->
                   <div class="modal fade" id="errorModal{{ loop.index }}" tabindex="-1">
                     <div class="modal-dialog">
                       <div class="modal-content">
@@ -91,40 +87,76 @@
 
   <script>
     const workoutData = {{ workouts|tojson }};
-    const repsPerDay = {};
-  
+    const allDatesSet = new Set();
+    const exerciseDateMap = {};
+
     workoutData.forEach(w => {
       const date = new Date(w.timestamp).toISOString().split('T')[0];
-      repsPerDay[date] = (repsPerDay[date] || 0) + w.reps;
+      const ex = w.exercise;
+      allDatesSet.add(date);
+
+      if (!exerciseDateMap[ex]) {
+        exerciseDateMap[ex] = {};
+      }
+
+      if (!exerciseDateMap[ex][date]) {
+        exerciseDateMap[ex][date] = 0;
+      }
+
+      exerciseDateMap[ex][date] += w.reps;
     });
-  
-    const labels = Object.keys(repsPerDay).reverse();
-    const data = Object.values(repsPerDay).reverse();
-  
+
+    const sortedDates = Array.from(allDatesSet).sort();
+    const datasets = [];
+
+    for (const exercise in exerciseDateMap) {
+      const repsData = sortedDates.map(date => exerciseDateMap[exercise][date] || 0);
+      datasets.push({
+        label: exercise,
+        data: repsData,
+        fill: false,
+        tension: 0.3,
+        borderWidth: 2
+      });
+    }
+
     new Chart(document.getElementById('workoutChart'), {
-      type: 'bar',
+      type: 'line',
       data: {
-        labels: labels,
-        datasets: [{
-          label: 'Reps per Day',
-          data: data,
-          backgroundColor: 'rgba(13, 110, 253, 0.7)'
-        }]
+        labels: sortedDates,
+        datasets: datasets
       },
       options: {
         responsive: true,
+        interaction: {
+          mode: 'nearest',
+          axis: 'x',
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top'
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false
+          }
+        },
         scales: {
-          x: {
+          y: {
             beginAtZero: true,
+            precision: 0
+          },
+          x: {
             ticks: {
-              precision: 0
+              maxRotation: 45,
+              minRotation: 45
             }
           }
         }
       }
     });
   </script>
-  
-
 </body>
 </html>
