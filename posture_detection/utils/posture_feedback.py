@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 from collections import deque
 from config_loader import load_config
+from utils.rfid_reader import get_current_user_id
 import os
 
 

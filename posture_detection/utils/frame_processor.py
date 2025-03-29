@@ -38,7 +38,7 @@ def process_frame(frame, pose, config):
             if get_rep_count() > 0:
                 send_summary(get_rep_count(), error_log, current_mode, frame)
             else:
-                print("[ℹ️] No reps detected — nothing to submit.")
+                print(" No reps detected — nothing to submit.")
                 
             reset_reps()
             error_log.clear()
@@ -47,7 +47,7 @@ def process_frame(frame, pose, config):
 
         last_mode = current_mode
 
-        # 🧠 If not lying down, reset stability tracking
+        # If not lying down, reset stability tracking
         if current_mode != "Lying Down":
             stable_position_count = 0
             user_in_position = False
@@ -59,7 +59,7 @@ def process_frame(frame, pose, config):
             if stable_position_count >= STABLE_LYING_THRESHOLD:
                 user_in_position = True
 
-        # ✅ Only start detecting reps/tilts after lying down is stable
+        # Only start detecting reps/tilts after lying down is stable
         if user_in_position:
             detect_bar_tilt(landmarks, frame)
             count_reps(landmarks, frame)
