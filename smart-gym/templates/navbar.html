@@ -1,0 +1,15 @@
+<!-- navbar.html -->
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm px-3 mb-4">
+    <a class="navbar-brand fw-bold" href="{{ url_for('user.dashboard') }}">Smart Gym</a>
+    <div class="ms-auto d-flex align-items-center gap-2">
+      <span class="me-2">Welcome, {{ user }}</span>
+  
+      {% if user_role == 'admin' %}
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary btn-sm">Admin Dashboard</a>
+      {% endif %}
+  
+      <a href="{{ url_for('user.profile') }}" class="btn btn-outline-primary btn-sm">Profile</a>
+      <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm">Logout</a>
+    </div>
+  </nav>
+  

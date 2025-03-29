@@ -16,6 +16,7 @@ def dashboard():
         user_doc = db.collection('users').document(user_id).get()
         user_data = user_doc.to_dict()
         name = user_data.get('name', 'User')
+        role = user_data.get('role', 'user')
 
         workouts = db.collection('workouts') \
                      .where('user_id', '==', user_id) \
@@ -23,7 +24,7 @@ def dashboard():
                      .limit(5).stream()
         workout_data = [w.to_dict() for w in workouts]
 
-        return render_template('dashboard.html', user=name, workouts=workout_data)
+        return render_template('dashboard.html', user=name, user_role=role, workouts=workout_data)
 
     except Exception as e:
         print("Error loading dashboard:", e)
@@ -42,6 +43,8 @@ def profile():
         user_doc = db.collection('users').document(user_id).get()
         user_data = user_doc.to_dict()
         name = user_data.get('name', '')
+        role = user_data.get('role', 'user')
+
 
         if request.method == 'POST':
             new_name = request.form.get('name')
@@ -66,7 +69,7 @@ def profile():
 
             return redirect(url_for('user.profile'))
 
-        return render_template('profile.html', name=name)
+        return render_template('profile.html', name=name,  user=name, user_role=role)
 
     except Exception as e:
         print("Error loading profile:", e)
@@ -82,6 +85,11 @@ def workouts():
         return redirect(url_for('auth.login'))
 
     try:
+        user_doc = db.collection('users').document(user_id).get()
+        user_data = user_doc.to_dict()
+        name = user_data.get('name', 'User')
+        role = user_data.get('role', 'user')
+        
         workout_docs = db.collection('workouts') \
                          .where('user_id', '==', user_id) \
                          .order_by('timestamp', direction=firestore.Query.DESCENDING) \
@@ -89,7 +97,7 @@ def workouts():
 
         workouts = [doc.to_dict() for doc in workout_docs]
 
-        return render_template('workouts.html', workouts=workouts)
+        return render_template('workouts.html', workouts=workouts, user=name, user_role=role,)
 
     except Exception as e:
         print("Error loading workouts:", e)

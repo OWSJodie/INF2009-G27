@@ -18,6 +18,9 @@ def dashboard():
     current_user_doc = db.collection('users').document(user_id).get()
     current_user = current_user_doc.to_dict()
 
+    name = current_user.get('name', '')
+    role = current_user.get('role', 'user')
+
     if not current_user or current_user.get('role') != 'admin':
         flash("Access denied: Admins only", "danger")
         return redirect(url_for('user.dashboard'))
@@ -30,7 +33,7 @@ def dashboard():
         user['user_id'] = doc.id
         users.append(user)
 
-    return render_template('admin_dashboard.html', users=users, current_user_email=current_email)
+    return render_template('admin_dashboard.html', users=users, current_user_email=current_email, user=name, user_role=role)
 
 # Assign RFID to user using the latest scanned RFID (auto-injected from Pi)
 @admin_bp.route('/admin/assign-rfid-scanned/<user_id>', methods=['POST'])
