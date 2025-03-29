@@ -41,10 +41,13 @@ def run_video_stream():
 
     # Initialize MediaPipe Pose (low complexity)
     pose = mp.solutions.pose.Pose(
-        model_complexity=0,
-        min_detection_confidence=0.8,
-        min_tracking_confidence=0.8,
-        static_image_mode=False
+        static_image_mode=False,
+        model_complexity=1,              
+        smooth_landmarks=True,
+        enable_segmentation=False,
+        smooth_segmentation=True,
+        min_detection_confidence=0.7,   
+        min_tracking_confidence=0.7     
     )
 
     paused = False

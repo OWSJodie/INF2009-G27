@@ -24,7 +24,7 @@ bar_tilt_counter = 0
 shoulder_lean_counter = 0
 
 # Constants
-PERSISTENCE_THRESHOLD = 60  # ~2 seconds at 30fps
+PERSISTENCE_THRESHOLD = 30  # ~1 seconds at 30fps
 
 # Directory for saving error images
 ERROR_OUTPUT_DIR = "errors"
