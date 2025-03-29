@@ -11,7 +11,6 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(ERROR_FOLDER, exist_ok=True)
 
 @workout_bp.route('/api/workout', methods=['POST'])
-@workout_bp.route('/api/workout', methods=['POST'])
 def receive_workout():
     try:
         rfid = request.form.get('rfid')
@@ -23,7 +22,7 @@ def receive_workout():
         if not rfid:
             return jsonify({"error": "RFID is required"}), 400
 
-        # 🔎 Find user by RFID
+        # Find user by RFID
         user_query = db.collection('users').where('rfid', '==', rfid).limit(1).stream()
         user_doc = next(user_query, None)
         if not user_doc:
@@ -31,7 +30,7 @@ def receive_workout():
 
         user_id = user_doc.id
 
-        # ✅ Save main workout image locally
+        # Save main workout image locally
         image = request.files.get('image')
         image_url = ''
         if image:
@@ -40,7 +39,7 @@ def receive_workout():
             image.save(filepath)
             image_url = f"/{filepath}"
 
-        # ✅ Save error images
+        # Save error images
         error_urls = []
         for key in request.files:
             if key.startswith("error_image_"):
@@ -51,7 +50,7 @@ def receive_workout():
                 err_file.save(err_path)
                 error_urls.append(f"/{err_path}")
 
-        # ✅ Save workout entry to Firestore
+        # Save workout entry to Firestore
         db.collection('workouts').add({
             "user_id": user_id,
             "rfid": rfid,
