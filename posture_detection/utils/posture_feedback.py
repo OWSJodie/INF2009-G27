@@ -4,6 +4,7 @@ import cv2
 from collections import deque
 from config_loader import load_config
 from utils.rfid_reader import get_current_user_id
+from utils.audio_feedback import play_sound
 import os
 
 
@@ -56,12 +57,13 @@ def detect_bar_tilt(landmarks, frame):
     else:
         shoulder_lean_counter = 0
 
-    if shoulder_lean_counter >= PERSISTENCE_THRESHOLD:
-        if "Shoulder Lean Detected" not in error_log:
-            error_log.append("Shoulder Lean Detected")
-            log_error_frame(frame, "Shoulder Lean Detected")
-        side = "LEFT" if avg_left_shoulder > avg_right_shoulder else "RIGHT"
-        cv2.putText(frame, f"Shoulders leaning {side}", (20, 320), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
+    # Use this if needed 
+    # if shoulder_lean_counter >= PERSISTENCE_THRESHOLD:
+    #     if "Shoulder Lean Detected" not in error_log:
+    #         error_log.append("Shoulder Lean Detected")
+    #         log_error_frame(frame, "Shoulder Lean Detected")
+    #     side = "LEFT" if avg_left_shoulder > avg_right_shoulder else "RIGHT"
+    #     cv2.putText(frame, f"Shoulders leaning {side}", (20, 320), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
 
     # Bar tilt detection
     if wrist_tilt > WRIST_TILT_THRESHOLD:
@@ -74,6 +76,7 @@ def detect_bar_tilt(landmarks, frame):
             error_log.append("Bar Tilt Detected")
             log_error_frame(frame, "Bar Tilt Detected")
         side = "LEFT" if avg_left_wrist > avg_right_wrist else "RIGHT"
+        play_sound(f"sounds/errors/bar_{side}.wav")
         cv2.putText(frame, f"Bar tilting to {side}", (20, 280), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
 
 def log_error_frame(frame, label):

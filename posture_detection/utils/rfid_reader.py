@@ -2,6 +2,7 @@ import threading
 import time
 import lgpio as GPIO
 from mfrc522 import SimpleMFRC522
+from utils.audio_feedback import play_sound
 
 # Global variable to store current RFID
 _current_rfid = None
@@ -27,6 +28,7 @@ def _rfid_loop():
 
                         if _current_rfid is None:
                             _current_rfid = uid
+                            handle_rfid_scan()
                             print(f"[RFID] Session started with: {uid}")
 
                 else:
@@ -65,3 +67,8 @@ def get_current_user_id():
 def clear_rfid_after_submission():
     global _current_rfid
     _current_rfid = None
+
+def handle_rfid_scan(uid):
+    print("[RFID] Detected UID:", uid)
+    play_sound("sounds/rfid_scan/beep.wav")  # Example file for scan
+
