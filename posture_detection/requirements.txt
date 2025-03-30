@@ -35,3 +35,4 @@ six==1.17.0
 sounddevice==0.5.1
 spidev==3.6
 urllib3==2.3.0
+pygame
