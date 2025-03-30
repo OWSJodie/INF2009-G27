@@ -51,7 +51,19 @@
             <tr>
               <td>{{ user.name }}</td>
               <td>{{ user.email }}</td>
-              <td>{{ user.role }}</td>
+              <td>
+                {% if user.email != current_user_email %}
+                <form method="POST" action="{{ url_for('admin.update_user_role', user_id=user.user_id) }}" class="d-flex align-items-center">
+                  <select name="new_role" class="form-select form-select-sm me-1">
+                    <option value="user" {% if user.role == 'user' %}selected{% endif %}>User</option>
+                    <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                  </select>
+                  <button type="submit" class="btn btn-outline-secondary btn-sm">Update</button>
+                </form>
+                {% else %}
+                  {{ user.role }}
+                {% endif %}
+              </td>
               <td>{{ user.rfid if user.rfid else 'Not Assigned' }}</td>
               <td>
                 {% if user.email != current_user_email %}

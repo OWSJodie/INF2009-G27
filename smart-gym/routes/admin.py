@@ -141,3 +141,32 @@ def analytics_data():
         result[exercise] = {date: len(uids) for date, uids in date_map.items()}
 
     return jsonify(result)
+
+@admin_bp.route('/admin/update-role/<user_id>', methods=['POST'])
+def update_user_role(user_id):
+    if 'user' not in session:
+        return redirect(url_for('auth.login'))
+
+    id_token = session['user']
+    decoded = admin_auth.verify_id_token(id_token)
+    current_user_id = decoded['uid']
+    current_user_doc = db.collection('users').document(current_user_id).get()
+    current_user = current_user_doc.to_dict()
+
+    if not current_user or current_user.get('role') != 'admin':
+        flash("Access denied", "danger")
+        return redirect(url_for('user.dashboard'))
+
+    new_role = request.form.get('new_role')
+    if new_role not in ['user', 'admin']:
+        flash("Invalid role selected", "danger")
+        return redirect(url_for('admin.dashboard'))
+
+    try:
+        db.collection('users').document(user_id).update({'role': new_role})
+        flash("Role updated successfully", "success")
+    except Exception as e:
+        print("Role update error:", e)
+        flash("Failed to update role", "danger")
+
+    return redirect(url_for('admin.dashboard'))
