@@ -59,3 +59,4 @@ typing_extensions==4.12.2
 uritemplate==4.1.1
 urllib3==1.26.20
 Werkzeug==3.0.3
+python-dateutil
