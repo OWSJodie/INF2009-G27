@@ -46,37 +46,58 @@ Smart Gym Buddy leverages AI-driven posture analysis using MediaPipe and OpenCV 
 - Chart.js / Bootstrap (for dashboard)
 - RFID Scanner (user authentication)
 
-##  Installation
 
-1. Clone the repository:
-```bash
-git clone https://github.com/OWSJodie/INF2009-G27.git
-cd INF2009-G27
-```
-
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-3. Run posture detection:
-After you navgiate to the posture detection folder 
-```bash
-python3 main.py
-```
-
-4. Start the Flask server:
-
-After you navgiate to the smart-gym folder 
-```bash
-python run.py
-```
-
-##  Usage
 
 - User scans RFID card to begin session.
 - System tracks posture and provides real-time corrections.
 - Summary is logged and displayed post-session.
+
+
+
+## Installation
+
+This project consists of two components that must be run in separate virtual environments:
+
+### 1. Webserver (Flask + Firebase)
+
+1. Navigate to the `smart-gym/webserver` folder:
+```bash
+cd smart-gym/webserver
+```
+
+2. Set up a virtual environment:
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+3. Run the Flask server:
+```bash
+python run.py
+```
+
+### 2. Posture Detection (Camera + Pose Estimation)
+
+1. Navigate to the `posture-detection` folder:
+```bash
+cd posture-detection
+```
+
+2. Set up a virtual environment:
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+3. Open the `config.json` file and replace the placeholder IP with your actual **web server's IP address**.
+
+4. Run the posture detection script:
+```bash
+python main.py
+```
+
 
 ##  Demo
 
@@ -101,3 +122,28 @@ If you're using **Raspberry Pi 5**, note the following:
   This version ensures compatibility with Pi 5 and provides more reliable GPIO access.
 
 Make sure to follow the installation instructions in that repo when setting up your RFID scanner.
+
+
+## Firebase Setup
+
+To enable session logging and authentication, you must set up your own Firebase project:
+
+1. Go to [Firebase Console](https://console.firebase.google.com/) and create a new project.
+2. In the project settings, add a new Web App to retrieve your Firebase config.
+3. Replace the placeholder configuration in the codebase with your actual Firebase credentials.
+4. Make sure Firebase Authentication and Firestore Database are enabled.
+
+**Note**: Do not share your Firebase keys publicly. Keep them secure using environment variables or a secure config file.
+
+
+## Posture Detection Configuration
+
+Before running the posture detection module, make sure to:
+
+1. Navigate to the `posture_detection` folder.
+2. Open the `config.json` file and replace the placeholder IP with your actual **web server's IP address** to ensure proper data communication.
+3. Then run the posture detection module:
+
+```bash
+python main.py
+```
