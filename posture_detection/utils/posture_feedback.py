@@ -18,6 +18,7 @@ wrist_history = deque(maxlen=config["rolling_frames"])
 shoulder_history = deque(maxlen=config["rolling_frames"])
 shoulder_stable_counter = 0
 error_log = []
+error_image_package = []
 
 # Error persistence counters
 bar_tilt_counter = 0
@@ -52,10 +53,10 @@ def detect_bar_tilt(landmarks, frame):
     shoulder_tilt = abs(avg_left_shoulder - avg_right_shoulder)
 
     # Shoulder lean detection
-    if shoulder_tilt > SHOULDER_TILT_THRESHOLD:
-        shoulder_lean_counter += 1
-    else:
-        shoulder_lean_counter = 0
+    # if shoulder_tilt > SHOULDER_TILT_THRESHOLD:
+    #     shoulder_lean_counter += 1
+    # else:
+    #     shoulder_lean_counter = 0
 
     # Use this if needed 
     # if shoulder_lean_counter >= PERSISTENCE_THRESHOLD:
@@ -74,7 +75,8 @@ def detect_bar_tilt(landmarks, frame):
     if bar_tilt_counter >= PERSISTENCE_THRESHOLD:
         if "Bar Tilt Detected" not in error_log:
             error_log.append("Bar Tilt Detected")
-            log_error_frame(frame, "Bar Tilt Detected")
+            error_info = log_error_frame(frame, "Bar Tilt Detected")
+            error_image_package.append(error_info)
         side = "LEFT" if avg_left_wrist > avg_right_wrist else "RIGHT"
         play_sound(f"sounds/errors/bar_{side}.wav")
         cv2.putText(frame, f"Bar tilting to {side}", (20, 280), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
@@ -88,3 +90,9 @@ def log_error_frame(frame, label):
 
     cv2.imwrite(filepath, frame)
     print(f"[ERROR] Saved error frame: {filepath}")
+
+    # Return a dictionary for appending to error_image_package
+    return {
+        "label": label,
+        "path": filepath
+    }

@@ -2,7 +2,7 @@ import cv2
 import mediapipe as mp
 
 from utils.pose_utils import detect_user_mode, is_user_lying_down
-from utils.posture_feedback import detect_bar_tilt, error_log, bar_tilt_counter, shoulder_lean_counter
+from utils.posture_feedback import detect_bar_tilt, error_log, bar_tilt_counter, shoulder_lean_counter, error_image_package
 from utils.rep_counter import count_reps, reset_reps, get_rep_count
 from utils.submit_result import send_summary
 from utils.rfid_reader import get_current_user_id
@@ -15,6 +15,7 @@ last_mode = "Unknown"
 stable_position_count = 0
 STABLE_LYING_THRESHOLD = 30  # ~1 second at 30 FPS
 user_in_position = False
+exercise = "Bench Press"
 
 def process_frame(frame, pose, config):
     global last_mode, stable_position_count, user_in_position
@@ -36,9 +37,9 @@ def process_frame(frame, pose, config):
         if current_mode in ["Standing", "Sitting", "Unknown"] and last_mode == "Lying Down":
 
             if get_rep_count() > 0:
-                send_summary(get_rep_count(), error_log, current_mode, frame)
+                send_summary(get_rep_count(), error_log, exercise, frame, error_image_package)
             else:
-                print(" No reps detected — nothing to submit.")
+                print(" No reps detected, nothing to submit.")
                 
             reset_reps()
             error_log.clear()
