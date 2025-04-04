@@ -1,9 +1,8 @@
-
-#  Smart Gym Buddy (T27)
+# Smart Gym Buddy (T27)
 
 Smart Gym Buddy is an edge-computing based system designed to assist gym-goers in maintaining proper posture and tracking workout performance in real time. It combines **computer vision**, **audio feedback**, and **dashboard analytics** to support both **users** and **gym owners** in enhancing training safety and operational efficiency.
 
-##  Table of Contents
+## Table of Contents
 
 - [Introduction](#introduction)
 - [Features](#features)
@@ -11,14 +10,18 @@ Smart Gym Buddy is an edge-computing based system designed to assist gym-goers i
 - [Technologies Used](#technologies-used)
 - [Installation](#installation)
 - [Usage](#usage)
+- [Posture Detection Configuration](#posture-detection-configuration)
+- [Optimization Note](#optimization-note)
 - [Demo](#demo)
 - [Contributors](#contributors)
+- [Firebase Setup](#firebase-setup)
+- [Raspberry Pi 5 Compatibility Note](#raspberry-pi-5-compatibility-note)
 
-##  Introduction
+## Introduction
 
 Smart Gym Buddy leverages AI-driven posture analysis using MediaPipe and OpenCV to detect incorrect bench press form and guide users via real-time audio alerts. It also logs workout data and provides analytics for gym owners on equipment usage.
 
-##  Features
+## Features
 
 ### User Features
 - Real-time posture feedback using MediaPipe
@@ -30,29 +33,25 @@ Smart Gym Buddy leverages AI-driven posture analysis using MediaPipe and OpenCV 
 - Equipment usage tracking (daily, weekly, monthly)
 - Dashboard displaying user activity and equipment analytics
 
-##  System Architecture
+## System Architecture
 
 - **Camera Input**: Captures user during bench press
 - **Raspberry Pi**: Runs pose detection locally using MediaPipe
-- **Flask Server**: Handles RFID authentication and logs session data to Firebase
+- **Flask Server**: Runs in a separate thread to handle RFID authentication and logs session data to Firebase
 - **Dashboard**: Visualizes equipment usage analytics
 
-##  Technologies Used
+**Threading**:
+- Flask server, RFID scanner, and audio playback run in separate threads for responsiveness.
+- Audio playback uses a thread lock to prevent multiple overlapping alerts when incorrect posture is detected.
 
-- Raspberry Pi 3
-- Python, OpenCV, MediaPipe
+## Technologies Used
+
+- Raspberry Pi 3 / 5
+- Python, OpenCV, MediaPipe, pygame (for audio playback with thread locking)
 - Flask (for web server)
 - Firebase (for session logging)
 - Chart.js / Bootstrap (for dashboard)
 - RFID Scanner (user authentication)
-
-
-
-- User scans RFID card to begin session.
-- System tracks posture and provides real-time corrections.
-- Summary is logged and displayed post-session.
-
-
 
 ## Installation
 
@@ -98,31 +97,65 @@ pip install -r requirements.txt
 python main.py
 ```
 
+## Usage
 
-##  Demo
+Smart Gym Buddy uses Python's `threading` module to ensure real-time, non-blocking operation across components:
 
-- [Video Demo](https://github.com/OWSJodie/INF2009-G27)
-- [Live Demo Results](Refer to Poster PDF)
+- **Flask Server** runs on a thread for handling RFID-based login and communication with Firebase.
+- **Audio Alerts** are triggered on a separate thread and use a **thread lock** to avoid overlapping or repeated posture alerts.
+- **RFID Scanner** operates independently in its own thread for smooth scanning and session handling.
 
-##  Contributors
+## Posture Detection Configuration
+
+### Configuration Options (`config.json`)
+
+The posture detection module uses a configuration file (`config.json`) to fine-tune sensitivity and behavior. Below is a breakdown of each parameter:
+
+```json
+{
+  "web_server_ip": "192.168.0.230",
+  "thresholds": {
+    "WRIST_TILT_THRESHOLD": 0.1,
+    "SHOULDER_TILT_THRESHOLD": 0.10,
+    "HEAD_TILT_ADJUSTMENT": 0.02,
+    "TOP_THRESHOLD": 0.20,
+    "BOTTOM_THRESHOLD": 0.30
+  },
+  "rolling_frames": 8,
+  "stability_threshold": 5,
+  "mode_stability_threshold": 5,
+  "ready_frames": 3
+}
+```
+
+### Threshold Notes
+
+- `WRIST_TILT_THRESHOLD`: Determines how sensitive the system is to wrist misalignment. Smaller values make the system stricter.
+- `TOP_THRESHOLD` / `BOTTOM_THRESHOLD`: Define the virtual Y-axis boundary for rep counting.
+  - **Smaller values = higher vertical line**
+  - These thresholds help detect whether the user has completed a full rep by checking if the wrist crosses these lines.
+
+### Mode Detection
+
+The posture detection system automatically classifies user posture into one of four modes:
+- `lying` (e.g., bench press)
+- `standing`
+- `sitting`
+- `unknown` (when pose data is insufficient or not detectable)
+
+## Optimization Note
+
+The posture detection module was optimized and tested primarily using the **bench press exercise** video:
+[Bench Press Demo – YouTube](https://www.youtube.com/watch?v=EUjh50tLlBo)
+
+This video was chosen to validate the system's accuracy under the `lying` mode. Modes such as `standing`, `sitting`, and `unknown` are supported and can be expanded in future versions for additional exercises or use cases.
+
+## Contributors
 
 - Ong Wei Song Jodie
 - Hoe Jessaryn
 - Tan Zining
 - Lee Ying Zhen
-
-
-##  Raspberry Pi 5 Compatibility Note
-
-If you're using **Raspberry Pi 5**, note the following:
-
-- Raspberry Pi 5 requires the use of the **`lgpio`** library instead of the deprecated RPi.GPIO.
-- For RFID functionality, use the updated library forked by PiMyLifeUp:  
-   https://github.com/pimylifeup/MFRC522-python  
-  This version ensures compatibility with Pi 5 and provides more reliable GPIO access.
-
-Make sure to follow the installation instructions in that repo when setting up your RFID scanner.
-
 
 ## Firebase Setup
 
@@ -135,15 +168,14 @@ To enable session logging and authentication, you must set up your own Firebase 
 
 **Note**: Do not share your Firebase keys publicly. Keep them secure using environment variables or a secure config file.
 
+## Raspberry Pi 5 Compatibility Note
 
-## Posture Detection Configuration
+If you're using **Raspberry Pi 5**, note the following:
 
-Before running the posture detection module, make sure to:
+- Raspberry Pi 5 requires the use of the **`lgpio`** library instead of the deprecated RPi.GPIO.
+- For RFID functionality, use the updated library forked by PiMyLifeUp:  
+  https://github.com/pimylifeup/MFRC522-python  
+  This version ensures compatibility with Pi 5 and provides more reliable GPIO access.
 
-1. Navigate to the `posture_detection` folder.
-2. Open the `config.json` file and replace the placeholder IP with your actual **web server's IP address** to ensure proper data communication.
-3. Then run the posture detection module:
+Make sure to follow the installation instructions in that repo when setting up your RFID scanner.
 
-```bash
-python main.py
-```
